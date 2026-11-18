@@ -68,7 +68,7 @@ mkdir -p ~/vs-mods   # put the jars here
 
 Output: `build/libs/valkyrienskies-26-1-2-2.4.205+mc26.1.2.jar`
 
-CI runs the same build on every push: [`.github/workflows/build.yml`](.github/workflows/build.yml) downloads those jar files from their public Modrinth CDN URLs, builds on JDK 25, uploads the artifact, and attaches the jar to a GitHub release when a `v*` tag is pushed. Two clean builds of the same sources produce the same SHA-256.
+CI runs the same build on every push: [`.github/workflows/build.yml`](.github/workflows/build.yml) downloads those jar files from their public Modrinth CDN URLs, builds on JDK 25, uploads the artifact, and attaches the jar to a GitHub release when a `v*` tag is pushed. A locally built jar can have a different SHA-256 than the CI one, because text resources keep the line endings of the checkout (CRLF on Windows, LF on the runner); the compiled classes are identical.
 
 ## Credits & License
 
