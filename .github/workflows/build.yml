@@ -85,7 +85,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            build/libs/valkyrienskies-*-mc26.1.2.jar
-            build/libs/valkyrienskies-*-mc26.1.2-sources.jar
+            build/libs/valkyrienskies-*+mc26.1.2.jar
+            build/libs/valkyrienskies-*+mc26.1.2-sources.jar
           fail_on_unmatched_files: true
           generate_release_notes: true
