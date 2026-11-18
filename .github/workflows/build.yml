@@ -1,0 +1,91 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (JDK 25)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # This project compiles against a handful of other mods. None of them are bundled
+      # into the jar or redistributed by this repository — the build only needs their
+      # classes on the compile classpath, so they are pulled from their public
+      # Modrinth CDN files at build time.
+      - name: Fetch compile-only mod jars
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/mods"
+          cd "$RUNNER_TEMP/mods"
+          fetch() { printf '  %s\n' "$1"; curl -fsSL --retry 3 --retry-delay 2 -o "$1" "$2"; }
+
+          fetch "cloth-config-26.1.154.jar" \
+            "https://cdn.modrinth.com/data/9s6osm5g/versions/GFM8zh9J/cloth-config-26.1.154.jar"
+          fetch "ForgeConfigAPIPort-v26.1.5-mc26.1.x-Fabric.jar" \
+            "https://cdn.modrinth.com/data/ohNO6lps/versions/jUe0ucoE/ForgeConfigAPIPort-v26.1.5-mc26.1.x-Fabric.jar"
+          fetch "sodium-fabric-0.9.1+mc26.1.2.jar" \
+            "https://cdn.modrinth.com/data/AANobbMI/versions/vf7UgZpC/sodium-fabric-0.9.1%2Bmc26.1.2.jar"
+          fetch "voxy-0.2.18-beta-26.1.2.jar" \
+            "https://cdn.modrinth.com/data/fxxUqruK/versions/Zt3LPI0b/voxy-0.2.18-beta-26.1.2.jar"
+          fetch "iris-fabric-1.11.4+mc26.1.2.jar" \
+            "https://cdn.modrinth.com/data/YL57xq9U/versions/sZbVsl2Q/iris-fabric-1.11.4%2Bmc26.1.2.jar"
+          fetch "entity_model_features-3.3.12-26.1-fabric.jar" \
+            "https://cdn.modrinth.com/data/4I1XuqiY/versions/zh2AVI88/entity_model_features-3.3.12-26.1-fabric.jar"
+          fetch "entity_texture_features-7.2.6-26.1-fabric.jar" \
+            "https://cdn.modrinth.com/data/BVzZfTc1/versions/2bcqPrsv/entity_texture_features-7.2.6-26.1-fabric.jar"
+          fetch "create-fly-26.1.2-6.0.9-4.jar" \
+            "https://cdn.modrinth.com/data/dKvj0eNn/versions/wV5IQLKg/create-fly-26.1.2-6.0.9-4.jar"
+
+          ls -l
+
+      - name: Build
+        run: |
+          chmod +x gradlew
+          ./gradlew build --no-daemon --console=plain -PlocalMods="$RUNNER_TEMP/mods"
+
+      - name: Show artifact checksums
+        run: |
+          cd build/libs
+          sha256sum *.jar
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: valkyrienskies-mc26.1.2
+          path: build/libs/*.jar
+          if-no-files-found: error
+
+      - name: Publish GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/libs/valkyrienskies-*-mc26.1.2.jar
+            build/libs/valkyrienskies-*-mc26.1.2-sources.jar
+          fail_on_unmatched_files: true
+          generate_release_notes: true

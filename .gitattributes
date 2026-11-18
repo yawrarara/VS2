@@ -1,0 +1,12 @@
+# Normalize line endings so the Gradle wrapper and shell scripts stay usable on Linux CI.
+* text=auto eol=lf
+
+*.jar   binary
+*.png   binary
+*.ogg   binary
+*.wav   binary
+*.zip   binary
+
+gradlew      text eol=lf
+*.bat        text eol=crlf
+gradlew.bat  text eol=crlf

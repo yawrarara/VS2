@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "id": "valkyrienskies",
+  "version": "${version}",
+  "name": "Valkyrien Skies 2",
+  "description": "Moving blocks with physics :) — Unofficial Fabric port",
+  "authors": [
+    "Tri0de",
+    "Rubydesic"
+  ],
+  "contributors": [
+    "Eminai-LeoVinci"
+  ],
+  "contact": {
+    "homepage": "https://github.com/Eminai-LeoVinci/VS2",
+    "sources": "https://github.com/Eminai-LeoVinci/VS2",
+    "issues": "https://github.com/Eminai-LeoVinci/VS2/issues"
+  },
+  "license": "GPL-3.0-only",
+  "icon": "assets/valkyrienskies/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "org.valkyrienskies.mod.fabric.common.ValkyrienSkiesModFabric"
+    ]
+  },
+  "mixins": [
+    "valkyrienskies-common.mixins.json",
+    "valkyrienskies-fabric.mixins.json"
+  ],
+  "accessWidener": "valkyrienskies-common.classtweaker",
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "26.1.2",
+    "java": ">=25",
+    "fabric-api": "*",
+    "fabric-language-kotlin": "*",
+    "forgeconfigapiport": ">=26.1.0"
+  },
+  "recommends": {
+    "sodium": "*"
+  },
+  "custom": {
+    "lithium:options": {
+      "mixin.ai.poi": false
+    }
+  }
+}

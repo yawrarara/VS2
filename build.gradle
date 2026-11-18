@@ -1,0 +1,199 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
+plugins {
+    id "net.fabricmc.fabric-loom" version "${loom_version}"
+    id "org.jetbrains.kotlin.jvm" version "${kotlin_version}"
+}
+
+version = "${mod_version}+mc${minecraft_version}"
+group = maven_group
+
+base {
+    archivesName = "${archives_base_name}-${minecraft_version.replace('.', '-')}"
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        name = "Fabric"
+        url = "https://maven.fabricmc.net/"
+    }
+    maven {
+        name = "Valkyrien Skies"
+        url = "https://maven.valkyrienskies.org"
+    }
+    maven {
+        name = "Sponge"
+        url = "https://repo.spongepowered.org/repository/maven-public/"
+    }
+}
+
+// Directory holding the compile-only mod jars. Override with -PlocalMods=<dir>.
+def localMods = providers.gradleProperty("localMods")
+        .getOrElse("C:/Users/ruzga/AppData/Roaming/ModrinthApp/profiles/test243/mods")
+
+configurations {
+    // vs-core impl (plus its runtime deps) is merged into our jar, like the old shadow setup.
+    shade
+    compileOnly.extendsFrom(shade)
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+
+    implementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
+    implementation "net.fabricmc:fabric-language-kotlin:${kotlin_fabric_version}"
+
+    // MixinExtras: annotation processor + nested runtime jar
+    include(implementation(annotationProcessor("io.github.llamalad7:mixinextras-fabric:${mixinextras_version}")))
+
+    // vs-core (Minecraft-agnostic)
+    implementation "org.valkyrienskies.core:api:${vs_core_version}"
+    implementation "org.valkyrienskies.core:internal:${vs_core_version}"
+    implementation "org.valkyrienskies.core:util:${vs_core_version}"
+    shade("org.valkyrienskies.core:impl:${vs_core_version}") {
+        exclude group: "org.jetbrains.kotlin"
+        exclude group: "com.google.guava"
+        exclude group: "org.joml", module: "joml"
+        exclude group: "io.netty", module: "netty-buffer"
+        exclude group: "it.unimi.dsi", module: "fastutil"
+        exclude group: "org.apache.logging.log4j"
+        exclude group: "com.networknt"
+        exclude group: "org.apache.commons", module: "commons-lang3"
+    }
+
+    implementation "com.google.guava:guava:31.1-jre"
+    implementation "com.fasterxml:classmate:1.5.1"
+
+    compileOnly "com.google.code.findbugs:jsr305:3.0.2"
+
+    compileOnly files("$localMods/cloth-config-26.1.154.jar")
+    compileOnly files("$localMods/ForgeConfigAPIPort-v26.1.5-mc26.1.x-Fabric.jar")
+    compileOnly "com.electronwill.night-config:core:3.8.3"
+
+    compileOnly files("$localMods/sodium-fabric-0.9.1+mc26.1.2.jar")
+    compileOnly files("$localMods/voxy-0.2.18-beta-26.1.2.jar")
+    compileOnly files("$localMods/iris-fabric-1.11.4+mc26.1.2.jar")
+    compileOnly files("$localMods/entity_model_features-3.3.12-26.1-fabric.jar")
+    compileOnly files("$localMods/entity_texture_features-7.2.6-26.1-fabric.jar")
+    compileOnly files("$localMods/create-fly-26.1.2-6.0.9-4.jar")
+}
+
+loom {
+    accessWidenerPath = file("common/src/main/resources/valkyrienskies-common.classtweaker")
+
+    runs {
+        client {
+            client()
+        }
+        server {
+            server()
+        }
+    }
+
+    mods {
+        "valkyrienskies" {
+            sourceSet sourceSets.main
+        }
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ["common/src/main/java", "fabric/src/main/java"]
+            // Third-party compat mixins for mods that have no 26.1.2 builds yet.
+            exclude {
+                it.path.contains("/mixin/mod_compat/")
+                    || it.path.contains("/compat/create/")
+                    || it.path.contains("/compat/dynmap/")
+                    || it.path.contains("/compat/tis3d/")
+                    || it.path.contains("/compat/fabric/mixin/compat/")
+                    || it.path.contains("/fabric/mixin/compat/")
+                    || it.path.contains("/compat/flywheel/")
+            }
+            exclude "org/valkyrienskies/mod/compat/FlywheelEvents.java"
+            exclude "org/valkyrienskies/mod/mixin/accessors/client/render/chunk/**"
+            exclude "org/valkyrienskies/mod/mixin/accessors/server/level/ChunkHolderAccessor.java"
+            exclude "org/valkyrienskies/mod/mixin/feature/enchantment_table/**"
+            exclude "org/valkyrienskies/mod/mixin/feature/sculk/**"
+            exclude "org/valkyrienskies/mod/mixin/feature/render_ship_debug_bb/**"
+            exclude "org/valkyrienskies/mod/mixin/feature/vs2_alpha_hud/MixinGui.java"
+            exclude "org/valkyrienskies/mod/mixin/feature/render_pathfinding/**"
+            exclude "org/valkyrienskies/mod/mixin/feature/fix_render_chunk_sorting/**"
+            exclude "org/valkyrienskies/mod/mixin/feature/render_blockentity_distance_check/**"
+            exclude "org/valkyrienskies/mod/mixin/feature/conduit_fix/ConduitMixin.java"
+            exclude "org/valkyrienskies/mod/mixin/feature/fluid_camera_fix/MixinCamera.java"
+            exclude "org/valkyrienskies/mod/mixin/feature/ship_debug_overlay/MixinDebugScreenOverlay.java"
+            exclude "org/valkyrienskies/mod/mixin/feature/wave_spawning/MixinRaid.java"
+            exclude "org/valkyrienskies/mod/mixin/feature/wave_spawning/MixinRaids.java"
+            exclude "org/valkyrienskies/mod/mixin/feature/world_border/MixinLevel.java"
+            exclude "org/valkyrienskies/mod/mixin/feature/ai/goal/bees/MixinPollinateGoal.java"
+            exclude "org/valkyrienskies/mod/mixin/feature/commands/MixinArgumentTypeInfos.java"
+            exclude "org/valkyrienskies/mod/mixin/feature/transform_particles/MixinLevelRenderer.java"
+            exclude "org/valkyrienskies/mod/mixin/feature/explosions/MixinExplosion.java"
+            exclude "org/valkyrienskies/mod/mixin/client/player/MixinPlayer.java"
+            exclude "org/valkyrienskies/mod/mixin/feature/shipyard_leashing/MixinPathfinderMob.java"
+            exclude "org/valkyrienskies/mod/mixin/feature/world_weather/MixinServerLevel.java"
+            exclude "org/valkyrienskies/mod/mixin/world/level/levelgen/MixinFlatLevelSource.java"
+            exclude "org/valkyrienskies/mod/mixin/world/level/levelgen/MixinNoiseBasedChunkGenerator.java"
+        }
+        kotlin {
+            srcDirs = [
+                "common/src/main/kotlin",
+                "fabric/src/main/kotlin",
+                "common/src/main/java",
+                "fabric/src/main/java"
+            ]
+            exclude "org/valkyrienskies/mod/compat/hexcasting/**"
+            exclude "org/valkyrienskies/mod/compat/flywheel/**"
+            exclude "org/valkyrienskies/mod/compat/Weather2Compat.kt"
+            exclude "org/valkyrienskies/mod/compat/dynmap/**"
+            exclude "org/valkyrienskies/mod/compat/tis3d/**"
+            exclude "org/valkyrienskies/mod/compat/create/**"
+            exclude "org/valkyrienskies/mod/fabric/compat/**"
+            exclude "org/valkyrienskies/mod/fabric/common/ContraptionShipyardEntityHandlerFabric.kt"
+        }
+        resources {
+            srcDirs = ["common/src/main/resources", "fabric/src/main/resources"]
+        }
+    }
+}
+
+jar {
+    from({ configurations.shade.collect { zipTree(it) } }) {
+        exclude "META-INF/MANIFEST.MF"
+        exclude "META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA"
+        exclude "module-info.class"
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    exclude "net/optifine/**"
+}
+
+processResources {
+    inputs.property "version", project.version
+
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = "UTF-8"
+    options.release = 25
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.fromTarget("25"))
+        optIn.add("org.valkyrienskies.core.api.VsBeta")
+    }
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+    withSourcesJar()
+}
